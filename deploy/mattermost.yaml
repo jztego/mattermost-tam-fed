@@ -1,0 +1,103 @@
+# Mattermost Enterprise on the Operator.
+# Single replica until a license is installed. Docs:
+# https://docs.mattermost.com/deployment-guide/server/kubernetes/deploy-k8s
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mm-postgres
+  namespace: mattermost
+type: Opaque
+stringData:
+  DB_CONNECTION_STRING: postgres://mmuser:mm-lab-db-pass@postgres.mattermost.svc.cluster.local:5432/mattermost?sslmode=disable&connect_timeout=10
+  DB_CONNECTION_CHECK_URL: postgres://mmuser:mm-lab-db-pass@postgres.mattermost.svc.cluster.local:5432/mattermost?sslmode=disable&connect_timeout=10
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mm-filestore
+  namespace: mattermost
+type: Opaque
+stringData:
+  accesskey: mmminio
+  secretkey: mm-lab-minio-pass
+---
+apiVersion: installation.mattermost.com/v1beta1
+kind: Mattermost
+metadata:
+  name: mm
+  namespace: mattermost
+spec:
+  image: mattermost/mattermost-enterprise-edition
+  imagePullPolicy: IfNotPresent
+  version: 11.7.15
+  replicas: 1
+  ingress:
+    enabled: true
+    host: mattermost.local
+    ingressClass: nginx
+    annotations:
+      kubernetes.io/ingress.class: nginx
+  database:
+    external:
+      secret: mm-postgres
+  fileStore:
+    external:
+      url: minio.mattermost.svc.cluster.local:9000
+      bucket: mattermost
+      secret: mm-filestore
+  scheduling:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        memory: 3Gi
+  mattermostEnv:
+    - name: MM_SERVICESETTINGS_SITEURL
+      value: http://127.0.0.1:8065
+    - name: MM_SERVICESETTINGS_ENABLEINCOMINGWEBHOOKS
+      value: "true"
+    - name: MM_SERVICESETTINGS_ENABLEPOSTUSERNAMEOVERRIDE
+      value: "true"
+    - name: MM_FILESETTINGS_AMAZONS3SSL
+      value: "false"
+    - name: MM_FILESETTINGS_AMAZONS3SSE
+      value: "false"
+    - name: MM_FILESETTINGS_AMAZONS3REGION
+      value: us-east-1
+    - name: MM_LDAPSETTINGS_ENABLE
+      value: "true"
+    - name: MM_LDAPSETTINGS_ENABLESYNC
+      value: "true"
+    - name: MM_LDAPSETTINGS_LDAPSERVER
+      value: openldap.mattermost.svc.cluster.local
+    - name: MM_LDAPSETTINGS_LDAPPORT
+      value: "10389"
+    - name: MM_LDAPSETTINGS_CONNECTIONSECURITY
+      value: ""
+    - name: MM_LDAPSETTINGS_BASEDN
+      value: dc=planetexpress,dc=com
+    - name: MM_LDAPSETTINGS_BINDUSERNAME
+      value: cn=admin,dc=planetexpress,dc=com
+    - name: MM_LDAPSETTINGS_BINDPASSWORD
+      value: GoodNewsEveryone
+    - name: MM_LDAPSETTINGS_USERFILTER
+      value: (objectClass=inetOrgPerson)
+    - name: MM_LDAPSETTINGS_GROUPFILTER
+      value: (objectClass=Group)
+    - name: MM_LDAPSETTINGS_GROUPDISPLAYNAMEATTRIBUTE
+      value: cn
+    - name: MM_LDAPSETTINGS_GROUPIDATTRIBUTE
+      value: cn
+    - name: MM_LDAPSETTINGS_EMAILATTRIBUTE
+      value: mail
+    - name: MM_LDAPSETTINGS_USERNAMEATTRIBUTE
+      value: uid
+    - name: MM_LDAPSETTINGS_IDATTRIBUTE
+      value: uid
+    - name: MM_LDAPSETTINGS_LOGINIDATTRIBUTE
+      value: uid
+    - name: MM_LDAPSETTINGS_FIRSTNAMEATTRIBUTE
+      value: givenName
+    - name: MM_LDAPSETTINGS_LASTNAMEATTRIBUTE
+      value: sn
