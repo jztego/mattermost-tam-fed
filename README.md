@@ -2,6 +2,19 @@
 
 Local Mattermost Enterprise on Kubernetes, on an Apple Silicon Mac Mini, for the Technical Account Manager interview project.
 
+## For a reviewer
+
+| The brief | Where to look |
+| --- | --- |
+| Mattermost on Kubernetes | Operator install in `scripts/bootstrap.sh`, server in `deploy/mattermost.yaml` |
+| LDAP group that can be @-mentioned | `ship_crew` in channel `bridge`. Fry, Leela, and Bender are the members |
+| A channel message from an incoming webhook | Channel `alerts`. `scripts/workspace.py` creates the hook and posts |
+| SQL behind System Console > Site Statistics > Total Sessions | [docs/total-sessions.md](docs/total-sessions.md) |
+
+A live walkthrough is: port-forward, log in as `sysadmin`, show `@ship_crew` in `bridge`, post the webhook into `alerts`, then open System Console > Site Statistics and compare Total Sessions with the SQL in that doc.
+
+This is a lab on one machine. It is not a customer deployment. The section under License says what that difference is.
+
 The server is Mattermost **11.7.15**, the current extended-support release. It runs through the Mattermost Operator, which is the Kubernetes path in the public deployment guide:
 
 https://docs.mattermost.com/deployment-guide/server/kubernetes/deploy-k8s
@@ -44,6 +57,13 @@ A trial request was also made, because the brief says to request one:
 - The legacy payload (`users`, `terms_accepted`, `receive_emails_accepted` only) came back `500` from Mattermost's license service.
 
 Entry is enough for every feature this project exercises. A business email would be the next step if a named trial key is required.
+
+For a customer, especially an air-gapped one, that trial call would not be made. The license would be a file applied offline. Entry also does not include high availability, which is why the server log says it is not licensed for High Availability. The process still serves.
+
+Two other lab shortcuts are in the manifests on purpose, so the steps can be repeated from this repo:
+
+- Database, MinIO, and admin passwords are in the YAML and in the table above. On a customer system those would come from a secret store, not from Git.
+- LDAP is plain LDAP on port 10389 inside the cluster, using the bind account published with the interview image. A customer connection would be LDAPS, with a bind account that is not in the repo.
 
 ## One-time cluster
 
